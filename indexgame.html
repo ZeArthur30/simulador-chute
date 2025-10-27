@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Chute</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    /* ======= RESET E ESTRUTURA ======= */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* Impede rolagem */
+  background-color: #f8f9fa;
+  font-family: Arial, sans-serif;
+}
+
+/* ======= CONTAINER PRINCIPAL ======= */
+.slider-container {
+  height: 100vh; /* ocupa a tela toda */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between; /* separa campo, controles e botão */
+  background-color: #1c1c1c;
+  color: white;
+  padding: 20px;
+}
+
+/* ======= CAMPO ======= */
+#campo {
+  background-color: green;
+  width: 90%;
+  height: 45%;
+  border-radius: 15px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* ======= TRAVE E REDES ======= */
+#trave {
+  background-color: lightgray;
+  width: 50%;
+  height: 40%;
+  border-radius: 10px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+#redes {
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  width: 70%;
+  height: 80px;
+  background-color: white;
+  margin: 0;
+}
+
+/* ======= BOLA ======= */
+#bola {
+  width: 40px;
+  height: 40px;
+  background-color: rgb(229, 154, 154);
+  border-radius: 50%;
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all 1s ease-out;
+}
+
+/* ======= CONTROLES ======= */
+.controls-wrapper {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 30px;
+  padding: 10px 0;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.control-section h4 {
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+/* ======= SLIDERS ======= */
+#altura {
+  transform: rotate(-90deg);
+  height: 400px;
+  max-height: 450px;
+  width: 25vh;
+  cursor: pointer;
+}
+
+#direcao {
+  width: 40vw;
+  max-width: 300px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.resultado {
+  font-size: 18px;
+  color: yellow;
+  text-align: center;
+}
+
+/* ======= BOTÃO ======= */
+.btn-lg {
+  padding: 12px 40px;
+  font-size: 20px;
+  border-radius: 10px;
+}
+
+/* ======= RESPONSIVIDADE ======= */
+@media (max-width: 900px) {
+  .slider-container {
+    justify-content: space-evenly;
+    padding: 10px;
+  }
+
+  #campo {
+    height: 35%;
+  }
+
+  #altura {
+    height: 250px;
+    width: 18vh;
+  }
+
+  #direcao {
+    width: 70vw;
+  }
+}
+
+  </style>
+</head>
+
+<body>
+
+  <div class="slider-container" role="main">
+
+    <!-- Campo e Trave -->
+    <div id="campo" aria-label="Campo de futebol">
+      <div id="trave" aria-label="Trave">
+        <div id="redes" aria-label="Redes"></div>
+      </div>
+      <div id="bola" aria-label="Bola"></div>
+    </div>
+
+    <!-- Controles -->
+    <div class="controls-wrapper">
+
+      <!-- Altura -->
+      <div class="control-section">
+        <h4>Regulador de Altura</h4>
+        <button type="button" onclick="iniciarAltura()" class="btn btn-light">Iniciar Altura</button>
+        <input type="range" id="altura" min="0" max="100" value="0">
+        <h5 id="resultadoAltura" class="resultado"></h5>
+      </div>
+
+      <!-- Direção -->
+      <div class="control-section">
+        <h4>Regulador de Direção</h4>
+        <button type="button" onclick="iniciarDirecao()" class="btn btn-light">Iniciar Direção</button>
+        <input type="range" id="direcao" min="0" max="100" value="50">
+        <h5 id="resultadoDirecao" class="resultado"></h5>
+      </div>
+    </div>
+
+    <!-- Botão de chute -->
+    <div class="text-center">
+      <button type="button" onclick="chutar()" class="btn btn-success btn-lg mt-3">⚽ Chutar</button>
+    </div>
+
+  </div>
+
+  <script>
+    let direcaoAltura = 1, intervaloAltura = null, pausadoAltura = false;
+    let direcaoDirecao = 1, intervaloDirecao = null, pausadoDirecao = false;
+
+    const altura = document.getElementById("altura");
+    const resultadoAltura = document.getElementById("resultadoAltura");
+    const direcaoSlider = document.getElementById("direcao");
+    const resultadoDirecao = document.getElementById("resultadoDirecao");
+    const bola = document.getElementById("bola");
+
+    // ================= ALTURA =================
+    altura.addEventListener("mousedown", (e) => {
+      if (!pausadoAltura) {
+        clearInterval(intervaloAltura);
+        pausadoAltura = true;
+        altura.style.cursor = "default";
+        resultadoAltura.innerHTML = "Altura fixada: " + altura.value + "%";
+      }
+      e.preventDefault();
+    });
+
+    function iniciarAltura() {
+      clearInterval(intervaloAltura);
+      pausadoAltura = false;
+      direcaoAltura = 1;
+      altura.style.cursor = "pointer";
+
+      intervaloAltura = setInterval(() => {
+        if (pausadoAltura) return;
+        let valor = Number(altura.value) + direcaoAltura;
+        if (valor >= 100) direcaoAltura = -1;
+        else if (valor <= 0) direcaoAltura = 1;
+        altura.value = valor;
+        resultadoAltura.innerHTML = "Altura: " + altura.value + "%";
+      }, 40);
+    }
+
+    // ================= DIREÇÃO =================
+    direcaoSlider.addEventListener("mousedown", (e) => {
+      if (!pausadoDirecao) {
+        clearInterval(intervaloDirecao);
+        pausadoDirecao = true;
+        direcaoSlider.style.cursor = "default";
+        resultadoDirecao.innerHTML = "Direção fixada: " + direcaoSlider.value + "%";
+      }
+      e.preventDefault();
+    });
+
+    function iniciarDirecao() {
+      clearInterval(intervaloDirecao);
+      pausadoDirecao = false;
+      direcaoDirecao = 1;
+      direcaoSlider.style.cursor = "pointer";
+
+      intervaloDirecao = setInterval(() => {
+        if (pausadoDirecao) return;
+        let valor = Number(direcaoSlider.value) + direcaoDirecao;
+        if (valor >= 100) direcaoDirecao = -1;
+        else if (valor <= 0) direcaoDirecao = 1;
+        direcaoSlider.value = valor;
+        resultadoDirecao.innerHTML = "Direção: " + direcaoSlider.value + "%";
+      }, 40);
+    }
+
+    // ================= CHUTE =================
+    function chutar() {
+      const alturaPerc = altura.value;
+      const direcaoPerc = direcaoSlider.value;
+
+      // Calcula deslocamentos
+      const deslocamentoX = (direcaoPerc - 50) * 1.8; // variação lateral
+      const deslocamentoY = (alturaPerc / 100) * 120; // elevação
+      const profundidade = (alturaPerc / 100) * 50; // efeito "entrar" no gol
+
+      // Anima o chute
+      bola.style.transition = "transform 0.9s cubic-bezier(0.25, 1, 0.5, 1)";
+      bola.style.transform = `translate(${deslocamentoX}px, -${deslocamentoY}px) scale(0.9)`;
+
+      // Simula profundidade (entra no gol)
+      bola.style.filter = "brightness(0.9)";
+      bola.style.zIndex = 0;
+
+      setTimeout(() => {
+        // Volta ao ponto inicial
+        bola.style.transition = "all 0.8s ease-in";
+        bola.style.transform = "translate(-50%, 0) scale(1)";
+        bola.style.left = "50%";
+        bola.style.bottom = "8%";
+        bola.style.filter = "brightness(1)";
+        bola.style.zIndex = 10;
+      }, 1000);
+    }
+  </script>
+
+</body>
+</html>
